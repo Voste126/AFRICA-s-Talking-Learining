@@ -27,8 +27,29 @@ load_dotenv()  # ← loads .env
 # Africa's Talking sandbox credentials
 AT_USERNAME    = os.getenv("AT_USERNAME")
 AT_API_KEY     = os.getenv("AT_API_KEY")
-AT_SHORTCODE   = os.getenv("AT_SHORTCODE#")
+AT_SHORTCODE   = os.getenv("AT_SHORTCODE")
 
+# Enable detailed logging
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'INFO',
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': True,
+        },
+    },
+}
 
 
 # SECURITY WARNING: keep the secret key used in production secret!

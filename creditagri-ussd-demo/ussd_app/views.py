@@ -10,6 +10,7 @@ import json
 logger = logging.getLogger(__name__)
 
 @method_decorator(csrf_exempt, name='dispatch')
+@method_decorator(csrf_exempt, name='dispatch')
 class UssdCallbackView(APIView):
     parser_classes = [FormParser]
     """
