@@ -1,66 +1,99 @@
 from django.shortcuts import render
-
-# Create your views here.
-import logging
+from django.http import HttpResponse
 from rest_framework.views import APIView
-from rest_framework.response import Response
-from django.conf import settings
+from rest_framework.parsers import FormParser
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
+import logging
+import json
 
 logger = logging.getLogger(__name__)
 
+@method_decorator(csrf_exempt, name='dispatch')
 class UssdCallbackView(APIView):
+    parser_classes = [FormParser]
     """
     CBV to handle USSD menu requests from Africa's Talking.
     """
 
     def post(self, request, *args, **kwargs):
-        # 1) Extract the USSD parameters
-        session_id   = request.data.get("sessionId", "")
-        service_code = request.data.get("serviceCode", "")
-        phone_number = request.data.get("phoneNumber", "")
-        text         = request.data.get("text", "")
+        try:
+            # Log request info
+            logger.info("=== USSD Request Received ===")
+            logger.info(f"Request Method: {request.method}")
+            logger.info(f"Content-Type: {request.content_type}")
+            logger.info(f"POST Data: {request.POST}")
 
-        logger.debug(f"USSD Request: session={session_id} text={text}")
+            # Get the POST data and clean it
+            text = request.POST.get("text", "default").strip()
+            session_id = request.POST.get("sessionId", "default")
+            phone_number = request.POST.get("phoneNumber", "default")
+            service_code = request.POST.get("serviceCode", "default")
 
-        # 2) Split the input text by '*' to get the menu path
-        inputs = text.split("*") if text else []
+            logger.info(f"Received Parameters:")
+            logger.info(f"text: '{text}'")  # Added quotes to see exact text
+            logger.info(f"sessionId: {session_id}")
+            logger.info(f"phoneNumber: {phone_number}")
+            logger.info(f"serviceCode: {service_code}")
 
-        # 3) Begin your menu logic
-        if text == "":
-            # First screen
-            response = (
-                "CON Welcome to Offline Account Manager\n"
-                "1. My Account\n"
-                "2. My Phone Number"
+            # Split input and clean it
+            inputs = [part.strip() for part in text.split('*')] if text else []
+            logger.info(f"Split inputs: {inputs}")
+
+            # Menu logic
+            if not text or text == "":
+                response = "CON Welcome to Offline Account Manager\n"
+                response += "1. My Account\n"
+                response += "2. My Phone Number"
+                logger.info("Sending initial menu")
+            
+            elif text == "1":
+                response = "CON Account Info\n"
+                response += "1. Account Number\n"
+                response += "2. Account Balance"
+                logger.info("Sending account menu")
+            
+            elif len(inputs) >= 2 and inputs[0] == "1":
+                if inputs[1] == "1":
+                    response = "END Your account number is ACC1001"
+                    logger.info("Sending account number")
+                elif inputs[1] == "2":
+                    response = "END Your balance is KES 10,000"
+                    logger.info("Sending balance")
+                else:
+                    response = "END Invalid selection for account info"
+                    logger.info("Invalid account selection")
+            
+            elif text == "2":
+                response = f"END Your phone number is {phone_number}"
+                logger.info("Sending phone number")
+            
+            else:
+                response = "END Invalid choice. Please try again."
+                logger.info("Sending invalid choice message")
+
+            logger.info(f"Final Response: '{response}'")  # Added quotes to see exact response
+
+            # Send response with proper headers
+            return HttpResponse(
+                response,
+                content_type='text/plain; charset=utf-8',
+                headers={
+                    'Access-Control-Allow-Origin': '*',
+                    'Cache-Control': 'no-cache'
+                }
             )
 
-        elif inputs[0] == "1":
-            # User chose "My Account"
-            if len(inputs) == 1:
-                # show sub-menu
-                response = (
-                    "CON Account Info\n"
-                    "1. Account Number\n"
-                    "2. Account Balance"
-                )
-            elif inputs[1] == "1":
-                # 1*1 → Account Number
-                account_number = "ACC1001"
-                response = f"END Your account number is {account_number}"
-            elif inputs[1] == "2":
-                # 1*2 → Account Balance
-                balance = "KES 10,000"
-                response = f"END Your balance is {balance}"
-            else:
-                response = "END Invalid selection."
+        except Exception as e:
+            logger.error(f"Error in USSD processing: {str(e)}", exc_info=True)
+            return HttpResponse(
+                "END An error occurred",
+                content_type='text/plain; charset=utf-8'
+            )
 
-        elif inputs[0] == "2":
-            # User chose "My Phone Number"
-            response = f"END Your phone number is {phone_number}"
-
-        else:
-            # Fallback
-            response = "END Invalid choice. Please try again."
-
-        # 4) Return a plain‑text response with the proper prefix
-        return Response(response, content_type="text/plain")
+    def get(self, request, *args, **kwargs):
+        return HttpResponse(
+            "This endpoint only accepts POST requests",
+            status=400,
+            content_type='text/plain; charset=utf-8'
+        )
