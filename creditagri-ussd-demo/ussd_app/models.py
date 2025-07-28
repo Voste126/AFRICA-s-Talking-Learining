@@ -5,10 +5,24 @@ This module can be extended to include database models for:
 - User accounts
 - Transaction history
 - Session management
-- etc.
+- USSD response logging
 """
 
 from django.db import models
+
+class UssdResponseLog(models.Model):
+    """
+    Model to store each USSD response sent to the user.
+    Useful for auditing, analytics, and debugging USSD flows.
+    """
+    session_id = models.CharField(max_length=50)
+    phone_number = models.CharField(max_length=15)
+    user_input = models.CharField(max_length=255, blank=True)
+    response_text = models.TextField()
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"USSD Response to {self.phone_number} at {self.timestamp}"
 
 # Example model structure for future implementation:
 '''
