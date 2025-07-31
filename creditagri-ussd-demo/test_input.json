@@ -1,0 +1,11 @@
+{
+  "instances": [
+    {
+      "location": "Nairobi-Westlands",
+      "hiveCount": 5,
+      "healthIndex": 4,
+      "experienceYears": 3,
+      "preventionPractice": true
+    }
+  ]
+}
